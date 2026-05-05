@@ -275,6 +275,72 @@ def _size_code_for(sector_bytes: int) -> int:
     return code
 
 
+def make_mgt(
+    files: list[tuple[str, int, int, int, bytes]],
+    *,
+    sides: int = 2,
+) -> bytes:
+    """Build a side-interleaved MGT disk with the given files.
+
+    `files` = list of (name, mgt_type, addr, length, data). Each file is
+    given a 9-byte +3DOS-style header (type=3 CODE for type 4/7) prefix
+    in the body. Files are placed contiguously in the data area starting
+    at track 4 (after the 4-track directory).
+    """
+    SECTOR = 512
+    DATA_PER_SECTOR = 510
+    TRACK = SECTOR * 10
+    SIDE = TRACK * 80
+    total = SIDE * sides
+    out = bytearray(total)
+
+    def offset(track: int, sector: int) -> int:
+        side = (track >> 7) & 1
+        phys = track & 0x7F
+        return (phys * 2 + side) * TRACK + (sector - 1) * SECTOR
+
+    cursor_track, cursor_sector = 4, 1
+    for i, (name, mgt_type, addr, length, data) in enumerate(files):
+        # +3DOS-style header: type(1) + length(2) + addr(2) + zeros + ffff
+        spectrum_type = 3 if mgt_type in (4, 7) else 0
+        header = bytes([spectrum_type]) + struct.pack("<HH", length & 0xFFFF, addr & 0xFFFF) + b"\x00\x00\xff\xff"
+        body = header + data
+
+        # Write directory entry at slot i
+        entry = bytearray(256)
+        entry[0] = mgt_type
+        entry[1:11] = name.encode("ascii")[:10].ljust(10, b" ")
+        # Sector count: ceil(body / DATA_PER_SECTOR)
+        sectors = (len(body) + DATA_PER_SECTOR - 1) // DATA_PER_SECTOR
+        entry[11] = (sectors >> 8) & 0xFF  # big-endian
+        entry[12] = sectors & 0xFF
+        entry[13] = cursor_track
+        entry[14] = cursor_sector
+        # Inline header at 211..219
+        entry[211] = spectrum_type
+        struct.pack_into("<HH", entry, 212, length & 0xFFFF, addr & 0xFFFF)
+        entry[218:220] = b"\xff\xff"
+        out[i * 256 : (i + 1) * 256] = entry
+
+        # Write body, chunked into sectors with chain pointers
+        body_cursor = 0
+        for s in range(sectors):
+            off = offset(cursor_track, cursor_sector)
+            chunk = body[body_cursor : body_cursor + DATA_PER_SECTOR]
+            out[off : off + len(chunk)] = chunk
+            # Chain to next sector
+            cursor_sector += 1
+            if cursor_sector > 10:
+                cursor_sector = 1
+                cursor_track += 1
+            if s < sectors - 1:
+                out[off + DATA_PER_SECTOR] = cursor_track
+                out[off + DATA_PER_SECTOR + 1] = cursor_sector
+            body_cursor += DATA_PER_SECTOR
+
+    return bytes(out)
+
+
 def make_z80_v3(
     pages: dict[int, bytes],
     *,

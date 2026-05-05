@@ -55,6 +55,7 @@ for i, frame in enumerate(ImageSequence.Iterator(img)):
 | `.dsk` | CPC DSK         | Spectrum +3 / Amstrad CPC, both standard and "Extended" variants. CP/M file system parsed (handles fragmented allocation). Auto-detects single/double-sided and various reserved-track conventions. |
 | `.scl` | TR-DOS packed   | "SINCLAIR" magic, compact distribution format used in Russian-speaking scene |
 | `.trd` | TR-DOS raw      | Sector-by-sector TR-DOS floppy dump; tolerant of truncated images |
+| `.mgt` | DISCiPLE / +D   | Side-interleaved 80-track disk for the MGT DISCiPLE & +D interfaces. CODE/SCREEN$ files reassembled by following the per-sector chain. |
 
 ### Snapshot
 
