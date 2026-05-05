@@ -54,9 +54,12 @@ def test_pillow_open_slt(tmp_path):
 
 def test_pillow_rejects_z80_without_slt_marker(tmp_path):
     """A bare .z80 file with no SLT marker should fall through to ZXZ80."""
+    # Build a v3 z80 with a real screen at page 8 ($4000) so Z80 can find one.
+    s = make_screen(0xFF, 0x07)
+    page8 = bytearray(16384)
+    page8[:6912] = s
+    z80 = make_z80_v3({4: bytes(16384), 5: bytes(16384), 8: bytes(page8)})
     p = tmp_path / "no-slt.slt"
-    p.write_bytes(_empty_v3_z80())
-    # The SLT plugin rejects (no marker), and Pillow falls through to ZXZ80
-    # which accepts it (PC=0, extra_len=54 is valid).
+    p.write_bytes(z80)
     img = Image.open(p)
     assert img.format == "ZXZ80"

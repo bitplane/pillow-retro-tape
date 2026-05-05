@@ -84,23 +84,25 @@ def _z80_snapshot_bytes(data: bytes) -> bytes:
     return data if sig_pos < 0 else data[:sig_pos]
 
 
-def extract_screens(data: bytes) -> list[bytes]:
-    """Return the snapshot's screen plus every SLT type-3 screen payload."""
-    out: list[bytes] = []
-    seen: set[bytes] = set()
+def iter_slt_events(data: bytes):
+    """Yield events for the underlying snapshot plus any SLT-table screens."""
+    from .loader import KIND_SNAPSHOT, LoadEvent
 
-    # Frame 0: the snapshot's $4000 view.
     try:
         snap = parse_z80(_z80_snapshot_bytes(data))
+    except ValueError:
+        snap = None
+
+    if snap is not None:
         main = snap.screen()
         if any(main):
-            out.append(main)
-            seen.add(main)
-    except ValueError:
-        pass  # snapshot may be malformed; fall through to any SLT screens
+            yield LoadEvent(body=main, addr=0x4000, name="bank5", kind=KIND_SNAPSHOT)
+        shadow = snap.shadow_screen()
+        if shadow is not None and any(shadow):
+            yield LoadEvent(body=shadow, addr=0x4000, name="shadow", kind=KIND_SNAPSHOT)
 
-    # Additional frames: SLT type-3 entries (compressed via z80 RLE).
-    for wtype, _wid, block in iter_slt_entries(data):
+    # SLT type-3 entries are compressed-RLE 6912-byte screens.
+    for wtype, wid, block in iter_slt_entries(data):
         if wtype != SLT_TYPE_SCREEN:
             continue
         try:
@@ -109,11 +111,18 @@ def extract_screens(data: bytes) -> list[bytes]:
             continue
         if len(screen) < SCREEN_BYTES:
             continue
-        screen = screen[:SCREEN_BYTES]
-        if screen not in seen:
-            seen.add(screen)
-            out.append(screen)
-    return out
+        yield LoadEvent(
+            body=screen[:SCREEN_BYTES],
+            addr=0x4000,
+            name=f"slt-screen-{wid}",
+            kind=KIND_SNAPSHOT,
+        )
+
+
+def extract_screens(data: bytes) -> list[bytes]:
+    from .loader import extract_screens as _ext
+
+    return _ext(iter_slt_events(data))
 
 
 def extract_screen(data: bytes) -> bytes:

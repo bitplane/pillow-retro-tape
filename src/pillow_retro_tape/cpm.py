@@ -125,3 +125,69 @@ def directory_looks_valid(flat: bytes, *, reserved_bytes: int = RESERVED_TRACK_B
     # Filename should be printable ASCII (allowing the high bit).
     name_bytes = bytes(b & 0x7F for b in e[1:12])
     return all(0x20 <= b < 0x7F or b == 0 for b in name_bytes)
+
+
+def _count_valid_dir_entries(
+    flat: bytes,
+    reserved_bytes: int,
+    n_dir_entries: int = N_DIR_ENTRIES,
+) -> int:
+    """Count plausible directory entries at `reserved_bytes`.
+
+    Returns -1 if any entry's filename is non-printable (a strong signal
+    that this isn't actually a directory).
+    """
+    if reserved_bytes + DIR_ENTRY_LEN * n_dir_entries > len(flat):
+        return -1
+    n = 0
+    for i in range(n_dir_entries):
+        e = flat[reserved_bytes + i * DIR_ENTRY_LEN : reserved_bytes + (i + 1) * DIR_ENTRY_LEN]
+        if e[0] == DELETED or all(b == 0 for b in e):
+            continue
+        if e[0] > 15:
+            continue  # disk label / time stamp / non-file
+        name_bytes = bytes(b & 0x7F for b in e[1:12])
+        if not all(0x20 <= b < 0x7F or b == 0 for b in name_bytes):
+            return -1  # garbage name -> definitely not a directory here
+        n += 1
+    return n
+
+
+def detect_reserved_offset(
+    flat: bytes,
+    *,
+    sectors_per_track: int = 9,
+    sides: int = 1,
+    sector_bytes: int = 512,
+) -> int:
+    """Find the start of the CP/M directory by trying common reserved-track
+    conventions for the disk geometry.
+
+    +3 single-sided reserves 1 track (4608 bytes for 9-sector tracks).
+    Double-sided ZXZVM-style boots reserve 2 (both sides of track 0 =
+    9216 bytes). CPC reserves 0 (directory at offset 0). PCW variants
+    sometimes reserve more. We pick whichever offset yields the most
+    plausible directory entries.
+    """
+    track_bytes = sectors_per_track * sector_bytes
+    candidates = [
+        track_bytes,  # +3 SS: 1 reserved
+        track_bytes * 2 if sides > 1 else track_bytes,  # +3 DS: 2 reserved
+        0,  # CPC: 0 reserved
+        track_bytes * 3,  # PCW: 3 reserved
+    ]
+    seen: set[int] = set()
+    ordered: list[int] = []
+    for r in candidates:
+        if r not in seen:
+            seen.add(r)
+            ordered.append(r)
+
+    best_offset = ordered[0]
+    best_score = -1
+    for r in ordered:
+        score = _count_valid_dir_entries(flat, r)
+        if score > best_score:
+            best_score = score
+            best_offset = r
+    return best_offset

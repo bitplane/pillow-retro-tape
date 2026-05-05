@@ -9,43 +9,29 @@ or container header — geometry is inferred from the file size:
 The file system layout is documented in tr_dos.py.
 """
 
+from typing import Iterator
+
 from PIL import Image
 
+from .loader import KIND_BASIC, KIND_CODE, LoadEvent
+from .loader import extract_screens as _extract_screens_from_events
 from .pillow_screen import ScreenSequenceImageFile
-from .spectrum_screen import SCREEN_BYTES
 from .tr_dos import TYPE_CODE, parse_trd_files
 
 TRD_VALID_SIZES = {163840, 327680, 655360}
 MIN_TRD_SIZE = 0x900  # directory + system sector minimum
 
 
-SCREEN_LOAD_ADDR = 0x4000
-
-_SCREEN_NAME_HINTS = ("SCR", "PIC", "TITL", "LOAD", "INTRO", "FRONT", "MAIN")
-
-
-def _screen_priority(name: str, addr: int) -> int:
-    upper = name.upper()
-    if any(h in upper for h in _SCREEN_NAME_HINTS):
-        return 0
-    if addr == SCREEN_LOAD_ADDR:
-        return 1
-    return 2
+def iter_trd_events(data: bytes) -> Iterator[LoadEvent]:
+    """Yield a LoadEvent per file in the TRD, in directory order."""
+    for f in parse_trd_files(data):
+        kind = KIND_CODE if f.type == TYPE_CODE else KIND_BASIC
+        addr = f.param1 if f.type == TYPE_CODE else None
+        yield LoadEvent(body=f.body, addr=addr, name=f.name, kind=kind)
 
 
 def extract_screens(data: bytes) -> list[bytes]:
-    """Return every plausible SCREEN$ in the TRD, ranked.
-
-    Filename-hinted files (SCR/PIC/TITL/...) come first, then files
-    loaded to $4000, then other 6912-byte CODE files.
-    """
-    candidates: list[tuple[int, int, bytes]] = []
-    for order, f in enumerate(parse_trd_files(data)):
-        if f.type == TYPE_CODE and f.param2 == SCREEN_BYTES and len(f.body) >= SCREEN_BYTES:
-            pri = _screen_priority(f.name, f.param1)
-            candidates.append((pri, order, f.body[:SCREEN_BYTES]))
-    candidates.sort(key=lambda x: (x[0], x[1]))
-    return [body for _, _, body in candidates]
+    return _extract_screens_from_events(iter_trd_events(data))
 
 
 def extract_screen(data: bytes) -> bytes:
@@ -81,8 +67,6 @@ class ZXTRDImageFile(ScreenSequenceImageFile):
 
 
 def _accept(prefix: bytes) -> bool:
-    # No magic; file size check happens in _open. Keep accept loose for
-    # extension-based dispatch.
     return len(prefix) >= 16
 
 

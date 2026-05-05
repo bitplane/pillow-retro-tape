@@ -86,11 +86,11 @@ def test_tap_image_sequence_iterator(tmp_path):
     assert frames == expected
 
 
-def test_tap_dedupes_identical_screens():
-    """Same screen loaded twice -> one frame, not two."""
+def test_tap_preserves_explicit_duplicate_screens():
+    """Same screen loaded twice -> two frames (explicit loads aren't deduped)."""
     s = make_screen(0xFF, 0x07)
     tap = _make_tap_with([s, s])
-    assert tap_screens(tap) == [s]
+    assert tap_screens(tap) == [s, s]
 
 
 # --- TZX ---------------------------------------------------------------------

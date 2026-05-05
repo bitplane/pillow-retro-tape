@@ -3,47 +3,30 @@
 SCL is a compact transfer format for TR-DOS disks: it stores only the
 directory entries and concatenated file data, no empty sectors or disk
 geometry. Magic bytes "SINCLAIR".
-
-Loading-screen extraction: scan the directory for files of TR-DOS type 'C'
-(CODE) with param2 == 6912 (the conventional SCREEN$ length).
 """
+
+from typing import Iterator
 
 from PIL import Image
 
+from .loader import KIND_BASIC, KIND_CODE, LoadEvent
+from .loader import extract_screens as _extract_screens_from_events
 from .pillow_screen import ScreenSequenceImageFile
-from .spectrum_screen import SCREEN_BYTES
 from .tr_dos import TYPE_CODE, parse_scl_files
 
 SCL_MAGIC = b"SINCLAIR"
 
 
-SCREEN_LOAD_ADDR = 0x4000
-
-_SCREEN_NAME_HINTS = ("SCR", "PIC", "TITL", "LOAD", "INTRO", "FRONT", "MAIN")
-
-
-def _screen_priority(name: str, addr: int) -> int:
-    upper = name.upper()
-    if any(h in upper for h in _SCREEN_NAME_HINTS):
-        return 0
-    if addr == SCREEN_LOAD_ADDR:
-        return 1
-    return 2
+def iter_scl_events(data: bytes) -> Iterator[LoadEvent]:
+    """Yield a LoadEvent per file in the SCL, in directory order."""
+    for f in parse_scl_files(data):
+        kind = KIND_CODE if f.type == TYPE_CODE else KIND_BASIC
+        addr = f.param1 if f.type == TYPE_CODE else None
+        yield LoadEvent(body=f.body, addr=addr, name=f.name, kind=kind)
 
 
 def extract_screens(data: bytes) -> list[bytes]:
-    """Return every plausible SCREEN$ in the SCL, ranked.
-
-    Filename-hinted files (SCR/PIC/TITL/...) come first, then files
-    loaded to $4000, then other 6912-byte CODE files.
-    """
-    candidates: list[tuple[int, int, bytes]] = []
-    for order, f in enumerate(parse_scl_files(data)):
-        if f.type == TYPE_CODE and f.param2 == SCREEN_BYTES and len(f.body) >= SCREEN_BYTES:
-            pri = _screen_priority(f.name, f.param1)
-            candidates.append((pri, order, f.body[:SCREEN_BYTES]))
-    candidates.sort(key=lambda x: (x[0], x[1]))
-    return [body for _, _, body in candidates]
+    return _extract_screens_from_events(iter_scl_events(data))
 
 
 def extract_screen(data: bytes) -> bytes:

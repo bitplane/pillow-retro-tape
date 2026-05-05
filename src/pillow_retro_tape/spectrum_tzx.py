@@ -1,12 +1,13 @@
 """Pillow plugin for ZX Spectrum TZX tape files.
 
 Walks the TZX block stream, extracts standard ROM-loader blocks (IDs 0x10
-and 0x11), feeds them to a `MemoryMap`, and decodes the resulting screen.
+and 0x11), translates header/data pairs to `LoadEvent`s, and feeds them
+into the unified screen extractor (see loader.py).
 
 Skips meta blocks (text, archive info, hardware type, glue, group/loop
 markers, pause). Raises NotImplementedError on audio-only blocks (pure
-tone, pulse sequence, pure data, direct recording, CSW, generalized) — those
-need an actual loader to interpret and aren't supported.
+tone, pulse sequence, pure data, direct recording, CSW, generalized) —
+those need an actual loader to interpret and aren't supported.
 """
 
 import struct
@@ -14,8 +15,9 @@ from typing import Iterator
 
 from PIL import Image
 
-from .blocks import Block, parse_block
-from .memory import MemoryMap
+from .blocks import Block, Header, parse_block
+from .loader import KIND_BASIC, KIND_CODE, LoadEvent
+from .loader import extract_screens as _extract_screens_from_events
 from .pillow_screen import ScreenSequenceImageFile
 
 TZX_MAGIC = b"ZXTape!\x1a"
@@ -75,11 +77,26 @@ def iter_tzx_blocks(data: bytes) -> Iterator[Block]:
             raise NotImplementedError(f"TZX block id 0x{bid:02x} at offset {i - 1} not supported")
 
 
+def iter_tzx_events(tzx_data: bytes) -> Iterator[LoadEvent]:
+    """Yield a LoadEvent per `header + data` pair in the TZX."""
+    pending: Header | None = None
+    for block in iter_tzx_blocks(tzx_data):
+        if block.is_header():
+            pending = Header.from_block(block)
+            continue
+        if block.is_data() and pending is not None:
+            kind = KIND_CODE if pending.type == 3 else KIND_BASIC
+            yield LoadEvent(
+                body=block.payload[: pending.length],
+                addr=pending.param1 if pending.type == 3 else None,
+                name=pending.name,
+                kind=kind,
+            )
+        pending = None
+
+
 def extract_screens(tzx_data: bytes) -> list[bytes]:
-    """Walk a TZX into a MemoryMap and return every SCREEN$ candidate in tape order."""
-    mem = MemoryMap()
-    mem.apply(iter_tzx_blocks(tzx_data))
-    return list(mem.screens_found())
+    return _extract_screens_from_events(iter_tzx_events(tzx_data))
 
 
 def extract_screen(tzx_data: bytes) -> bytes:

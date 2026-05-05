@@ -35,11 +35,14 @@ import struct
 
 from PIL import Image
 
-from .cpm import directory_looks_valid, list_files
+from typing import Iterator
+
+from .cpm import detect_reserved_offset, directory_looks_valid, list_files
 from .disk import DiskImage, Sector
+from .loader import KIND_CODE, KIND_RAW, LoadEvent
+from .loader import extract_screens as _extract_screens_from_events
 from .pillow_screen import ScreenSequenceImageFile
 from .plus3dos import TYPE_CODE, find_plus3_files, parse_at
-from .spectrum_screen import SCREEN_BYTES
 
 DSK_MAGIC_EXT = b"EXTENDED CPC DSK File"
 DSK_MAGIC_STD = b"MV - CPC"
@@ -114,69 +117,81 @@ def _parse_track(track_data: bytes, extended: bool) -> list[Sector]:
     return out
 
 
-SCREEN_LOAD_ADDR = 0x4000
+def iter_dsk_events(dsk_data: bytes) -> Iterator[LoadEvent]:
+    """Yield a LoadEvent per file across all plausible CP/M layouts.
 
-# Filename hints (uppercase, substring match) that strongly suggest a
-# loading screen. Ranked first so they show up as frame 0.
-_SCREEN_NAME_HINTS = ("SCR", "PIC", "TITL", "LOAD", "INTRO", "FRONT", "MAIN")
-
-
-def _is_screen_shaped(plus3_file) -> bool:
-    return (
-        plus3_file is not None
-        and plus3_file.type == TYPE_CODE
-        and plus3_file.length == SCREEN_BYTES
-        and len(plus3_file.body) == SCREEN_BYTES
-    )
-
-
-def _screen_priority(name: str, ext: str, addr: int) -> int:
-    """Lower = more likely to be a loading screen.
-
-    Filename hints (SCR/PIC/TITL/LOAD/...) win over the canonical $4000
-    load address, which wins over other 6912-byte CODE files.
+    Tries the track-major interleaved view AND each per-side view (handles
+    CPC "Data"-format DS disks). Each file's +3DOS header gives the load
+    address; raw 6912-byte chunks (no header) are emitted at $4000.
     """
-    upper = (name + ext).upper()
-    if any(h in upper for h in _SCREEN_NAME_HINTS):
-        return 0
-    if addr == SCREEN_LOAD_ADDR:
-        return 1
-    return 2
+    img = parse_dsk(dsk_data)
+
+    layouts: list[bytes] = [img.flat()]
+    if img.sides > 1:
+        for side in range(img.sides):
+            layouts.append(img.flat_side(side))
+
+    yielded: set[bytes] = set()  # dedup body across layouts
+    for flat in layouts:
+        for ev in _events_from_layout(flat, img):
+            key = ev.body
+            if key in yielded:
+                continue
+            yielded.add(key)
+            yield ev
+
+
+def _events_from_layout(flat: bytes, img: DiskImage) -> Iterator[LoadEvent]:
+    sectors_per_track, sector_bytes = _detect_geometry(img)
+    reserved = detect_reserved_offset(
+        flat,
+        sectors_per_track=sectors_per_track,
+        sides=img.sides,
+        sector_bytes=sector_bytes,
+    )
+    if directory_looks_valid(flat, reserved_bytes=reserved):
+        for cpm_file in list_files(flat, reserved_bytes=reserved):
+            yield _event_from_cpm_file(cpm_file)
+    else:
+        # No CP/M file system here — fall back to magic-scanning for raw
+        # +3DOS files at sector boundaries (no filename info available).
+        for f in find_plus3_files(flat):
+            kind = KIND_CODE if f.type == TYPE_CODE else KIND_RAW
+            yield LoadEvent(body=f.body, addr=f.param1, kind=kind)
+
+
+def _event_from_cpm_file(cpm_file) -> LoadEvent:
+    """Decode a CP/M file body into a LoadEvent.
+
+    Files saved by 48-BASIC carry a 128-byte +3DOS header that gives the
+    load address; the actual content follows. Files written without that
+    header (raw binaries) are emitted as raw with no address.
+    """
+    p3 = parse_at(cpm_file.body, 0)
+    name = f"{cpm_file.name}.{cpm_file.ext}".rstrip(".")
+    if p3 is not None:
+        kind = KIND_CODE if p3.type == TYPE_CODE else KIND_RAW
+        return LoadEvent(body=p3.body, addr=p3.param1, name=name, kind=kind)
+    # No +3DOS header — raw bytes. Don't speculate about an address.
+    return LoadEvent(body=cpm_file.body, addr=None, name=name, kind=KIND_RAW)
 
 
 def extract_screens(dsk_data: bytes) -> list[bytes]:
-    """Return every plausible 6912-byte SCREEN$ in the DSK, ranked.
+    return _extract_screens_from_events(iter_dsk_events(dsk_data))
 
-    Frame ordering: filename-hinted files first (SCR/PIC/TITL/...),
-    then files loaded to $4000, then any other 6912-byte CODE file.
-    Within each tier, disk order is preserved.
 
-    Two strategies for finding files:
-    1. If the disk has a CP/M directory, walk it and reconstruct each
-       file from its allocation block list (handles fragmentation).
-    2. Otherwise (raw +3DOS written directly to disk, no CP/M FS), scan
-       sector-aligned positions for the +3DOS magic and assume
-       contiguous allocation.
-    """
-    img = parse_dsk(dsk_data)
-    flat = img.flat()
-    candidates: list[tuple[int, int, bytes]] = []  # (priority, disk_order, body)
-
-    if directory_looks_valid(flat):
-        for order, cpm_file in enumerate(list_files(flat)):
-            f = parse_at(cpm_file.body, 0)
-            if _is_screen_shaped(f):
-                pri = _screen_priority(cpm_file.name, cpm_file.ext, f.param1)
-                candidates.append((pri, order, f.body))
-    if not candidates:
-        # Fallback: raw magic-scan with no filename info (priority by addr).
-        for order, f in enumerate(find_plus3_files(flat)):
-            if _is_screen_shaped(f):
-                pri = _screen_priority("", "", f.param1)
-                candidates.append((pri, order, f.body))
-
-    candidates.sort(key=lambda x: (x[0], x[1]))
-    return [body for _, _, body in candidates]
+def _detect_geometry(img: DiskImage) -> tuple[int, int]:
+    """Return (sectors_per_track, sector_bytes) inferred from track 1 side 0
+    (or whatever's available)."""
+    if not img.sectors:
+        return 9, 512
+    # Pick the first track-side that's actually populated.
+    by_track_side: dict[tuple[int, int], list[Sector]] = {}
+    for s in img.sectors:
+        by_track_side.setdefault((s.track, s.side), []).append(s)
+    sample = by_track_side[next(iter(by_track_side))]
+    sector_bytes = max(len(s.data) for s in sample)
+    return len(sample), sector_bytes
 
 
 def extract_screen(dsk_data: bytes) -> bytes:

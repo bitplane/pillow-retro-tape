@@ -198,13 +198,29 @@ def _place_page(snap: Snapshot, page: int, page_data: bytes, is_128k: bool, port
 # --- Pillow plugin --------------------------------------------------------
 
 
-def extract_screens(data: bytes) -> list[bytes]:
+def iter_z80_events(data: bytes):
+    """Snapshot RAM is already populated; emit one event per relevant bank.
+
+    Bank 5 (always at $4000) and bank 7 (the 128K shadow screen) are
+    surfaced as separate writes to $4000. Empty banks (all zeros) are
+    skipped — they're the synthetic "no screen captured" state, not an
+    explicit load by the user.
+    """
+    from .loader import KIND_SNAPSHOT, LoadEvent
+
     snap = parse_z80(data)
-    screens = [snap.screen()]
+    main = snap.screen()
+    if any(main):
+        yield LoadEvent(body=main, addr=0x4000, name="bank5", kind=KIND_SNAPSHOT)
     shadow = snap.shadow_screen()
-    if shadow is not None and shadow != screens[0]:
-        screens.append(shadow)
-    return screens
+    if shadow is not None and any(shadow):
+        yield LoadEvent(body=shadow, addr=0x4000, name="shadow", kind=KIND_SNAPSHOT)
+
+
+def extract_screens(data: bytes) -> list[bytes]:
+    from .loader import extract_screens as _ext
+
+    return _ext(iter_z80_events(data))
 
 
 class ZXZ80ImageFile(ScreenSequenceImageFile):

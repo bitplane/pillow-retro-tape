@@ -4,8 +4,9 @@ A TAP file is a flat sequence of records:
 
     [2-byte little-endian length][length bytes of standard ROM block]
 
-Each standard ROM block is `flag + payload + checksum`. We feed the parsed
-blocks to a `MemoryMap` and decode the resulting screen.
+Each standard ROM block is `flag + payload + checksum`. Header/data block
+pairs are translated to `LoadEvent`s and fed into the unified screen
+extractor (see loader.py).
 """
 
 import struct
@@ -13,8 +14,9 @@ from typing import Iterator
 
 from PIL import Image
 
-from .blocks import DATA_FLAG, HEADER_FLAG, MIN_BLOCK_LEN, Block, parse_block
-from .memory import MemoryMap
+from .blocks import DATA_FLAG, HEADER_FLAG, MIN_BLOCK_LEN, Block, Header, parse_block
+from .loader import KIND_BASIC, KIND_CODE, LoadEvent
+from .loader import extract_screens as _extract_screens_from_events
 from .pillow_screen import ScreenSequenceImageFile
 
 
@@ -34,11 +36,26 @@ def iter_tap_blocks(data: bytes) -> Iterator[Block]:
         i += length
 
 
+def iter_tap_events(tap_data: bytes) -> Iterator[LoadEvent]:
+    """Yield a LoadEvent per `header + data` pair in the TAP."""
+    pending: Header | None = None
+    for block in iter_tap_blocks(tap_data):
+        if block.is_header():
+            pending = Header.from_block(block)
+            continue
+        if block.is_data() and pending is not None:
+            kind = KIND_CODE if pending.type == 3 else KIND_BASIC
+            yield LoadEvent(
+                body=block.payload[: pending.length],
+                addr=pending.param1 if pending.type == 3 else None,
+                name=pending.name,
+                kind=kind,
+            )
+        pending = None
+
+
 def extract_screens(tap_data: bytes) -> list[bytes]:
-    """Walk a TAP into a MemoryMap and return every SCREEN$ candidate in tape order."""
-    mem = MemoryMap()
-    mem.apply(iter_tap_blocks(tap_data))
-    return list(mem.screens_found())
+    return _extract_screens_from_events(iter_tap_events(tap_data))
 
 
 def extract_screen(tap_data: bytes) -> bytes:

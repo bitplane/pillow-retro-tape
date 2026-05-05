@@ -30,3 +30,15 @@ class DiskImage:
 
     def flat(self) -> bytes:
         return b"".join(s.data for s in self.logical_sectors())
+
+    def flat_side(self, side: int) -> bytes:
+        """Flat byte stream of just one side, sorted by (track, sector_id).
+
+        Useful for CPC "Data"-format double-sided disks where each side is
+        an independent CP/M disk (often with mirrored content).
+        """
+        side_sectors = sorted(
+            (s for s in self.sectors if s.side == side),
+            key=lambda s: (s.track, s.sector_id),
+        )
+        return b"".join(s.data for s in side_sectors)
