@@ -27,7 +27,8 @@ def test_extract_screens_skips_code_files_of_wrong_size():
             ("MAINCODE", TYPE_CODE, 0x6000, 8192, b"\x00" * 8192),
         ]
     )
-    assert extract_screens(scl) == []
+    # File is recognised but has no extractable screen -> null-screen fallback.
+    assert extract_screens(scl) == [bytes(6912)]
 
 
 def test_pillow_open_scl(tmp_path):

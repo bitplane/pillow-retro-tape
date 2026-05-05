@@ -43,16 +43,47 @@ def iter_tzx_blocks(data: bytes) -> Iterator[Block]:
             i += 3
             yield parse_block(data[i : i + length])
             i += length
+        elif bid == 0x12:  # pure tone: 4 bytes (pulse length + count)
+            i += 4
+        elif bid == 0x13:  # pulse sequence: 1-byte count + count*2 bytes
+            i += 1 + data[i] * 2
+        elif bid == 0x14:  # pure data: 7-byte timing + 3-byte length + data
+            # The data is a custom-loader payload (SpeedLock / BleepLoad /
+            # similar). Without per-protection-scheme decoders we can't
+            # recover a standard ROM block from it; skip.
+            i += 7
+            length = data[i] | (data[i + 1] << 8) | (data[i + 2] << 16)
+            i += 3 + length
+        elif bid == 0x15:  # direct recording: 5-byte timing + 3-byte length + data
+            i += 5
+            length = data[i] | (data[i + 1] << 8) | (data[i + 2] << 16)
+            i += 3 + length
+        elif bid == 0x18:  # CSW recording: 4-byte length + data
+            length = struct.unpack_from("<I", data, i)[0]
+            i += 4 + length
+        elif bid == 0x19:  # generalized data: 4-byte length + data
+            length = struct.unpack_from("<I", data, i)[0]
+            i += 4 + length
         elif bid == 0x20:  # pause / stop
             i += 2
         elif bid == 0x21:  # group start: 1-byte length + name
             i += 1 + data[i]
         elif bid == 0x22:  # group end
             pass
+        elif bid == 0x23:  # jump to relative
+            i += 2
         elif bid == 0x24:  # loop start: 2-byte repetitions
             i += 2
         elif bid == 0x25:  # loop end
             pass
+        elif bid == 0x26:  # call sequence: 2-byte count + count*2 bytes
+            count = struct.unpack_from("<H", data, i)[0]
+            i += 2 + count * 2
+        elif bid == 0x27:  # return from sequence
+            pass
+        elif bid == 0x28:  # select block: 2-byte length + data
+            length = struct.unpack_from("<H", data, i)[0]
+            i += 2 + length
         elif bid == 0x2A:  # stop tape if 48K
             i += 4
         elif bid == 0x2B:  # set signal level: 4-byte length + 1 byte
@@ -67,10 +98,16 @@ def iter_tzx_blocks(data: bytes) -> Iterator[Block]:
             i += 2 + length
         elif bid == 0x33:  # hardware type: 1-byte count + count*3 bytes
             i += 1 + data[i] * 3
+        elif bid == 0x34:  # emulation info
+            i += 8
         elif bid == 0x35:  # custom info: 16-byte id + 4-byte length
             i += 16
             length = struct.unpack_from("<I", data, i)[0]
             i += 4 + length
+        elif bid == 0x40:  # snapshot block: 1 byte + 3-byte length + data
+            i += 1
+            length = data[i] | (data[i + 1] << 8) | (data[i + 2] << 16)
+            i += 3 + length
         elif bid == 0x5A:  # glue
             i += 9
         else:

@@ -53,14 +53,14 @@ def test_extract_screen_from_skewed_sectors():
     assert extract_screen(dsk) == expected
 
 
-def test_extract_screen_raises_when_no_screen_file():
-    # Build a DSK with a non-CODE file -> no SCREEN$.
+def test_extract_screen_returns_null_when_no_real_screen():
+    # Build a DSK with a non-CODE file -> no extractable screen -> the
+    # null-screen fallback fires (a single all-zero 6912-byte frame).
     body = b"\x00" * 256
     file_bytes = make_plus3_header(0, len(body), 5) + body  # type=0 (BASIC)
     sectors = _layout_screen_into_sectors(file_bytes, n_sectors=2)
     dsk = make_extended_dsk([[(1, sectors[0]), (2, sectors[1])]])
-    with pytest.raises(ValueError):
-        extract_screen(dsk)
+    assert extract_screen(dsk) == bytes(6912)
 
 
 def test_parse_dsk_rejects_bad_magic():

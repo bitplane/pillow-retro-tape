@@ -76,7 +76,13 @@ def collect_screens(events: Iterable[LoadEvent]) -> list[ScreenCandidate]:
     out: list[ScreenCandidate] = []
 
     for event in events:
-        if event.addr is not None and event.body:
+        # Only write into RAM if the target lies in actual RAM ($4000-$FFFF).
+        # Loads to the ROM area ($0000-$3FFF) can't be literal — typically
+        # the on-disk header is lying and a runtime loader relocates the
+        # data. Modelling those as real writes pollutes screen memory with
+        # whatever happens to overlap $4000 (e.g. game code in the middle
+        # of a 35KB block claiming to load at $0028).
+        if event.addr is not None and event.addr >= SCREEN_ADDR and event.body:
             addr = event.addr & 0xFFFF
             end = min(addr + len(event.body), RAM_SIZE)
             if end > addr:
@@ -154,5 +160,16 @@ def rank_screens(candidates: Iterable[ScreenCandidate]) -> list[bytes]:
 
 
 def extract_screens(events: Iterable[LoadEvent]) -> list[bytes]:
-    """End-to-end: events -> candidates -> ranked deduped screen bodies."""
-    return rank_screens(collect_screens(events))
+    """End-to-end: events -> candidates -> ranked screen bodies.
+
+    If we walked at least one event but found nothing worth showing, emit
+    a single all-zero "null screen" so recognized-but-empty files still
+    produce a frame the user can look at (the alternative is a hard
+    UnidentifiedImageError, which conflates "this isn't even our format"
+    with "this file genuinely has no extractable screen").
+    """
+    events = list(events)
+    ranked = rank_screens(collect_screens(events))
+    if not ranked and events:
+        return [bytes(SCREEN_BYTES)]
+    return ranked

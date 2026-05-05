@@ -75,14 +75,9 @@ def test_iter_tzx_rejects_bad_magic():
 
 
 def test_iter_tzx_raises_on_unsupported_block():
-    # 0x15 = direct recording — needs a real loader.
-    bad = (
-        b"ZXTape!\x1a\x01\x14"
-        + bytes([0x15])
-        + b"\x00\x00\x00\x00\x00"  # 5 bytes of timing
-        + struct.pack("<I", 4)[:3]  # 3-byte length = 4
-        + b"\x00\x00\x00\x00"
-    )
+    # 0x99 isn't a defined TZX block ID; we should raise rather than
+    # silently misinterpret bytes.
+    bad = b"ZXTape!\x1a\x01\x14" + bytes([0x99])
     with pytest.raises(NotImplementedError):
         list(iter_tzx_blocks(bad))
 
