@@ -57,6 +57,12 @@ for i, frame in enumerate(ImageSequence.Iterator(img)):
 | `.trd` | TR-DOS raw      | Sector-by-sector TR-DOS floppy dump; tolerant of truncated images |
 | `.mgt` | DISCiPLE / +D   | Side-interleaved 80-track disk for the MGT DISCiPLE & +D interfaces. CODE/SCREEN$ files reassembled by following the per-sector chain. |
 
+### Microdrive
+
+| Ext    | Format          | Notes |
+| ------ | --------------- | ----- |
+| `.mdr` | Microdrive cart | Sector-by-sector dump of a Spectrum Microdrive cartridge (543-byte sectors with mod-255 checksums). Files reconstructed by gathering all records belonging to a filename and stripping the inline 9-byte header. PRINT# files are not handled. |
+
 ### Snapshot
 
 | Ext    | Format          | Notes |
