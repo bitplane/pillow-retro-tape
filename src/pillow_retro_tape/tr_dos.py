@@ -85,7 +85,18 @@ def parse_scl_files(data: bytes) -> Iterator[TrDosFile]:
         name, type_, p1, p2, sectors = meta
         body_len = sectors * SECTOR_BYTES
         if cursor + body_len > len(data):
-            raise ValueError(f"SCL file {name!r} body runs past EOF")
+            # Truncated SCL — yield what we can of this file then stop.
+            available = len(data) - cursor
+            if available >= SECTOR_BYTES:
+                yield TrDosFile(
+                    name=name,
+                    type=type_,
+                    param1=p1,
+                    param2=p2,
+                    sectors=available // SECTOR_BYTES,
+                    body=bytes(data[cursor : cursor + (available // SECTOR_BYTES) * SECTOR_BYTES]),
+                )
+            return
         yield TrDosFile(
             name=name,
             type=type_,
@@ -123,14 +134,20 @@ def parse_trd_files(data: bytes) -> Iterator[TrDosFile]:
         start_track = entry[15]  # logical track (counts both sides on DS)
         offset = _trd_offset(start_track, start_sector, sides, track_bytes)
         body_len = sectors * SECTOR_BYTES
+        if offset >= len(data):
+            # File starts past the end of the (truncated) image — skip.
+            continue
         if offset + body_len > len(data):
-            raise ValueError(f"TRD file {name!r} body runs past EOF")
+            # Truncated TRD — yield what's actually in the file.
+            body_len = (len(data) - offset) // SECTOR_BYTES * SECTOR_BYTES
+            if body_len == 0:
+                continue
         yield TrDosFile(
             name=name,
             type=type_,
             param1=p1,
             param2=p2,
-            sectors=sectors,
+            sectors=body_len // SECTOR_BYTES,
             body=bytes(data[offset : offset + body_len]),
         )
 

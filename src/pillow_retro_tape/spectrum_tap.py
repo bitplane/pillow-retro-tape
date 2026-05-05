@@ -14,25 +14,30 @@ from typing import Iterator
 
 from PIL import Image
 
-from .blocks import DATA_FLAG, HEADER_FLAG, MIN_BLOCK_LEN, Block, Header, parse_block
+from .blocks import MIN_BLOCK_LEN, Block, Header, parse_block
 from .loader import KIND_BASIC, KIND_CODE, LoadEvent
 from .loader import extract_screens as _extract_screens_from_events
 from .pillow_screen import ScreenSequenceImageFile
 
 
 def iter_tap_blocks(data: bytes) -> Iterator[Block]:
-    """Yield each standard ROM-loader Block in a TAP file."""
+    """Yield each standard ROM-loader Block in a TAP file.
+
+    Tolerant of trailing junk: a zero or sub-minimum length word, or a
+    block that would run past EOF, is treated as end-of-tape rather than
+    a hard error. Many TAPs in the wild have a few padding bytes after
+    the last real block.
+    """
     i = 0
-    while i < len(data):
-        if i + 2 > len(data):
-            raise ValueError(f"truncated TAP at offset {i}: missing length word")
+    while i + 2 <= len(data):
         length = struct.unpack_from("<H", data, i)[0]
         i += 2
-        if length < MIN_BLOCK_LEN:
-            raise ValueError(f"TAP block too short at offset {i - 2}: {length} bytes")
-        if i + length > len(data):
-            raise ValueError(f"truncated TAP at offset {i}: block runs past EOF")
-        yield parse_block(data[i : i + length])
+        if length < MIN_BLOCK_LEN or i + length > len(data):
+            return  # treat as end-of-tape
+        try:
+            yield parse_block(data[i : i + length])
+        except ValueError:
+            pass  # malformed individual block — skip rather than abort
         i += length
 
 
@@ -80,6 +85,13 @@ class ZXTAPImageFile(ScreenSequenceImageFile):
         data = self.fp.read()
         if size != len(data):
             raise SyntaxError("could not read full TAP file")
+        # Require at least one parseable block before we claim this file —
+        # otherwise we'd shadow other plugins (.scr is exactly 6912 bytes
+        # of no-magic data, for example) by always returning the null
+        # fallback for any binary that happens to satisfy the lightweight
+        # accept fingerprint.
+        if not any(True for _ in iter_tap_blocks(data)):
+            raise SyntaxError("not a TAP file: no valid blocks")
         try:
             screens = extract_screens(data)
         except ValueError as e:
@@ -90,13 +102,16 @@ class ZXTAPImageFile(ScreenSequenceImageFile):
 def _accept(prefix: bytes) -> bool:
     """Lightweight TAP fingerprint (full validation happens in _open).
 
-    A real TAP starts with a 2-byte length followed by a flag byte that's
-    either 0x00 (header) or 0xFF (data). Length must fit a non-empty block.
+    A real TAP starts with a 2-byte length word for the first record, so
+    we just check that the length is at least the minimum block size.
+    The flag byte is left to _open: standard tapes use 0x00/0xFF but
+    SAM Coupé and custom-loader tapes use other values, and we'd rather
+    fall through to the null-screen fallback than reject them outright.
     """
     if len(prefix) < 3:
         return False
     length = prefix[0] | (prefix[1] << 8)
-    return length >= MIN_BLOCK_LEN and prefix[2] in (HEADER_FLAG, DATA_FLAG)
+    return length >= MIN_BLOCK_LEN
 
 
 def register() -> None:

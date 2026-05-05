@@ -75,8 +75,13 @@ def parse_dsk(data: bytes) -> DiskImage:
         if size == 0:
             continue
         if offset + size > len(data):
-            raise ValueError(f"track at offset {offset} runs past EOF")
-        sectors.extend(_parse_track(data[offset : offset + size], extended))
+            # Truncated DSK — keep what we've already read and stop.
+            break
+        try:
+            sectors.extend(_parse_track(data[offset : offset + size], extended))
+        except ValueError:
+            # Track has a malformed Track-Info marker etc. Skip this track.
+            pass
         offset += size
 
     return DiskImage(tracks=n_tracks, sides=n_sides, sectors=sectors)
@@ -94,7 +99,7 @@ def _parse_track(track_data: bytes, extended: bool) -> list[Sector]:
     for s in range(n_sectors):
         info = track_data[24 + s * 8 : 24 + s * 8 + 8]
         if len(info) < 8:
-            raise ValueError("truncated sector-info entry")
+            break  # truncated sector-info entry — stop parsing this track
         sector_id = info[2]
         size_code = info[3]
         if extended:
@@ -103,8 +108,11 @@ def _parse_track(track_data: bytes, extended: bool) -> list[Sector]:
                 actual_len = 128 << size_code
         else:
             actual_len = 128 << size_code
+        # Copy-protected disks sometimes claim sentinel sectors with bogus
+        # sizes (e.g. size_code=8 -> 32KB) past the real track data. Stop
+        # at the real end rather than aborting.
         if cursor + actual_len > len(track_data):
-            raise ValueError(f"sector {sector_id} runs past track end")
+            break
         out.append(
             Sector(
                 track=track,

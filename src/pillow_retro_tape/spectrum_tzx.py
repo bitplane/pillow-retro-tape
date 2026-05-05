@@ -35,13 +35,19 @@ def iter_tzx_blocks(data: bytes) -> Iterator[Block]:
         if bid == 0x10:  # standard speed data
             _, length = struct.unpack_from("<HH", data, i)
             i += 4
-            yield parse_block(data[i : i + length])
+            try:
+                yield parse_block(data[i : i + length])
+            except ValueError:
+                pass  # malformed block — skip rather than abort the parse
             i += length
         elif bid == 0x11:  # turbo speed data — same shape, different timing
             i += 0x0F  # skip 15 bytes of timing
             length = data[i] | (data[i + 1] << 8) | (data[i + 2] << 16)
             i += 3
-            yield parse_block(data[i : i + length])
+            try:
+                yield parse_block(data[i : i + length])
+            except ValueError:
+                pass
             i += length
         elif bid == 0x12:  # pure tone: 4 bytes (pulse length + count)
             i += 4

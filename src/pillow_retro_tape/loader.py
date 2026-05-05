@@ -162,14 +162,10 @@ def rank_screens(candidates: Iterable[ScreenCandidate]) -> list[bytes]:
 def extract_screens(events: Iterable[LoadEvent]) -> list[bytes]:
     """End-to-end: events -> candidates -> ranked screen bodies.
 
-    If we walked at least one event but found nothing worth showing, emit
-    a single all-zero "null screen" so recognized-but-empty files still
-    produce a frame the user can look at (the alternative is a hard
-    UnidentifiedImageError, which conflates "this isn't even our format"
-    with "this file genuinely has no extractable screen").
+    Returns an empty list if the file had no extractable screen. The
+    per-format Pillow plugin then raises SyntaxError ("no SCREEN$
+    found in container") which surfaces as UnidentifiedImageError —
+    honest about "we recognised the format but there's nothing to
+    decode" rather than producing a misleading black frame.
     """
-    events = list(events)
-    ranked = rank_screens(collect_screens(events))
-    if not ranked and events:
-        return [bytes(SCREEN_BYTES)]
-    return ranked
+    return rank_screens(collect_screens(events))

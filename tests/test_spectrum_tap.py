@@ -50,31 +50,30 @@ def test_extract_screen_falls_back_to_6912_byte_block():
     assert extract_screen(tap) == screen
 
 
-def test_iter_tap_rejects_truncated_block():
-    # Length says 100 bytes, only 5 follow.
+def test_iter_tap_skips_truncated_block_silently():
+    # Length says 100 bytes, only 5 follow -> treat as end-of-tape.
     bad = struct.pack("<H", 100) + b"\xff\x00\x00\x00\x00"
-    with pytest.raises(ValueError):
-        list(iter_tap_blocks(bad))
+    assert list(iter_tap_blocks(bad)) == []
 
 
-def test_iter_tap_rejects_truncated_length_word():
-    with pytest.raises(ValueError):
-        list(iter_tap_blocks(b"\x13"))  # one byte, can't even read length
+def test_iter_tap_skips_truncated_length_word():
+    assert list(iter_tap_blocks(b"\x13")) == []
 
 
-def test_iter_tap_rejects_zero_length_block():
+def test_iter_tap_skips_zero_length_block():
     bad = struct.pack("<H", 0)
-    with pytest.raises(ValueError):
-        list(iter_tap_blocks(bad))
+    assert list(iter_tap_blocks(bad)) == []
 
 
 def test_accept_fingerprint():
-    # Real TAP starts: length=19 (0x0013), flag=0x00 -> b'\x13\x00\x00...'
+    # Real TAP starts: length=19 (0x0013), then flag.
     assert _accept(b"\x13\x00\x00")
     assert _accept(b"\x13\x00\xff")
-    # Wrong third byte
-    assert not _accept(b"\x13\x00\x42")
-    # Length too small
+    # Non-standard flag bytes are accepted at this stage (SAM Coupé and
+    # custom-loader tapes use values other than 0x00/0xFF); _open does
+    # the real validation.
+    assert _accept(b"\x13\x00\x42")
+    # Length too small to be a block
     assert not _accept(b"\x01\x00\x00")
     # Too short to fingerprint
     assert not _accept(b"\x13")

@@ -18,19 +18,19 @@ from . import (
 pillow_screen.register_decoder()
 
 # Pillow tries formats in registration order when several plugins accept
-# the same prefix. Register strict-magic formats first, then loose
-# fingerprints, then the no-magic formats from most specific (smallest
-# size envelope) to least.
+# the same prefix. Register strict-magic formats first, then formats with
+# strong in-_open validation (size constraints, system-sector magic),
+# then the loose-accept ones last so they don't shadow the others.
 spectrum_dsk.register()  # "EXTENDED CPC DSK File" / "MV - CPC"
 spectrum_tzx.register()  # "ZXTape!\x1a"
 spectrum_szx.register()  # "ZXST"
 spectrum_scl.register()  # "SINCLAIR"
-spectrum_tap.register()  # length+flag fingerprint
 spectrum_scr.register()  # exactly 6912 bytes
 spectrum_sna.register()  # exactly 49179 or 131103 bytes
-spectrum_trd.register()  # exactly 163840 / 327680 / 655360 bytes
+spectrum_trd.register()  # TR-DOS magic byte 0x10 at $8E7
 spectrum_slt.register()  # z80 + "\x00\x00\x00SLT" marker
 spectrum_z80.register()  # any v1/v2/v3 z80 (loosest)
+spectrum_tap.register()  # length+flag fingerprint (loosest tape)
 
 __all__ = [
     "spectrum_dsk",
