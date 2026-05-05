@@ -1,5 +1,5 @@
 [project]
-name = "pillow_retro_tape"
+name = "pillow_zx_spectrum"
 description = "Load images from 8-bit computer tapes"
 version = "0.1.0"
 authors = [

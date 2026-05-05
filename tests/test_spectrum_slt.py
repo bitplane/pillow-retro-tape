@@ -1,7 +1,7 @@
 from PIL import Image
 
-import pillow_retro_tape  # noqa: F401
-from pillow_retro_tape.spectrum_slt import (
+import pillow_zx_spectrum  # noqa: F401
+from pillow_zx_spectrum.spectrum_slt import (
     SLT_TYPE_SCREEN,
     extract_screens,
     iter_slt_entries,

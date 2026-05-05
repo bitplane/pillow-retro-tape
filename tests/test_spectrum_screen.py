@@ -1,12 +1,12 @@
 import pytest
 
-from pillow_retro_tape.palette import (
+from pillow_zx_spectrum.palette import (
     BRIGHT_LEVEL,
     NORMAL_LEVEL,
     SPECTRUM_BRIGHT,
     SPECTRUM_NORMAL,
 )
-from pillow_retro_tape.spectrum_screen import (
+from pillow_zx_spectrum.spectrum_screen import (
     HEIGHT,
     WIDTH,
     decode_screen,

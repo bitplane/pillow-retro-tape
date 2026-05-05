@@ -1,6 +1,6 @@
 import pytest
 
-from pillow_retro_tape.tr_dos import (
+from pillow_zx_spectrum.tr_dos import (
     TYPE_BASIC,
     TYPE_CODE,
     parse_scl_files,

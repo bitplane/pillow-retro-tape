@@ -1,4 +1,4 @@
-from pillow_retro_tape.disk import DiskImage, Sector
+from pillow_zx_spectrum.disk import DiskImage, Sector
 
 
 def test_logical_sectors_sorts_by_track_side_id():

@@ -1,6 +1,6 @@
 import pytest
 
-from pillow_retro_tape.blocks import (
+from pillow_zx_spectrum.blocks import (
     DATA_FLAG,
     HEADER_FLAG,
     TYPE_CODE,

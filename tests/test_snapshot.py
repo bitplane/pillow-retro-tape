@@ -1,4 +1,4 @@
-from pillow_retro_tape.snapshot import MachineType, Snapshot
+from pillow_zx_spectrum.snapshot import MachineType, Snapshot
 
 from ._helpers import make_screen
 

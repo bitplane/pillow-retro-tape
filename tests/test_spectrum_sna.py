@@ -1,9 +1,9 @@
 import pytest
 from PIL import Image, UnidentifiedImageError
 
-import pillow_retro_tape  # noqa: F401
-from pillow_retro_tape.snapshot import MachineType
-from pillow_retro_tape.spectrum_sna import parse_sna
+import pillow_zx_spectrum  # noqa: F401
+from pillow_zx_spectrum.snapshot import MachineType
+from pillow_zx_spectrum.spectrum_sna import parse_sna
 
 from ._helpers import make_screen, make_sna_48k
 

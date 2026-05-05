@@ -1,14 +1,14 @@
 import pytest
 from PIL import Image, UnidentifiedImageError
 
-import pillow_retro_tape  # noqa: F401
-from pillow_retro_tape.mgt import (
+import pillow_zx_spectrum  # noqa: F401
+from pillow_zx_spectrum.mgt import (
     TYPE_BASIC,
     TYPE_CODE,
     TYPE_SCREEN,
     parse_mgt_files,
 )
-from pillow_retro_tape.spectrum_mgt import extract_screens
+from pillow_zx_spectrum.spectrum_mgt import extract_screens
 
 from ._helpers import make_mgt, make_screen
 

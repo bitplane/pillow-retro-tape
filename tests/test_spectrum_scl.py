@@ -1,9 +1,9 @@
 import pytest
 from PIL import Image, UnidentifiedImageError
 
-import pillow_retro_tape  # noqa: F401
-from pillow_retro_tape.spectrum_scl import extract_screens
-from pillow_retro_tape.tr_dos import TYPE_BASIC, TYPE_CODE
+import pillow_zx_spectrum  # noqa: F401
+from pillow_zx_spectrum.spectrum_scl import extract_screens
+from pillow_zx_spectrum.tr_dos import TYPE_BASIC, TYPE_CODE
 
 from ._helpers import make_scl, make_screen
 

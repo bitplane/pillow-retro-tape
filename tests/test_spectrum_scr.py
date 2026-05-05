@@ -3,8 +3,8 @@ import hashlib
 import pytest
 from PIL import Image, UnidentifiedImageError
 
-import pillow_retro_tape  # noqa: F401  (registers the plugin)
-from pillow_retro_tape.palette import SPECTRUM_BRIGHT, SPECTRUM_NORMAL
+import pillow_zx_spectrum  # noqa: F401  (registers the plugin)
+from pillow_zx_spectrum.palette import SPECTRUM_BRIGHT, SPECTRUM_NORMAL
 
 COLORBARS_PIXEL_SHA256 = "31ad8e99ff03cbca0eaa9ca37802d02f7d6056e4311310dd273ec02eea1609bd"
 

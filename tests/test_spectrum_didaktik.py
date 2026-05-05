@@ -1,8 +1,8 @@
 import pytest
 from PIL import Image, UnidentifiedImageError
 
-import pillow_retro_tape  # noqa: F401
-from pillow_retro_tape.didaktik import (
+import pillow_zx_spectrum  # noqa: F401
+from pillow_zx_spectrum.didaktik import (
     DIR_SECTORS,
     FAT_SECTORS,
     SDOS_MARKER,
@@ -13,7 +13,7 @@ from pillow_retro_tape.didaktik import (
     parse_didaktik_files,
     parse_geometry,
 )
-from pillow_retro_tape.spectrum_didaktik import extract_screens
+from pillow_zx_spectrum.spectrum_didaktik import extract_screens
 
 from ._helpers import make_screen
 

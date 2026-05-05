@@ -3,9 +3,9 @@ import struct
 import pytest
 from PIL import Image, UnidentifiedImageError
 
-import pillow_retro_tape  # noqa: F401  (registers plugins)
-from pillow_retro_tape.snapshot import MachineType
-from pillow_retro_tape.spectrum_z80 import (
+import pillow_zx_spectrum  # noqa: F401  (registers plugins)
+from pillow_zx_spectrum.snapshot import MachineType
+from pillow_zx_spectrum.spectrum_z80 import (
     _validate_header,
     decompress_z80,
     parse_z80,

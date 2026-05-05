@@ -1,4 +1,4 @@
-from pillow_retro_tape.palette import (
+from pillow_zx_spectrum.palette import (
     BRIGHT_LEVEL,
     NORMAL_LEVEL,
     SPECTRUM_BRIGHT,

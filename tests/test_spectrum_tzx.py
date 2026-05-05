@@ -3,9 +3,9 @@ import struct
 import pytest
 from PIL import Image, UnidentifiedImageError
 
-import pillow_retro_tape  # noqa: F401  (registers plugins)
-from pillow_retro_tape.blocks import TYPE_CODE
-from pillow_retro_tape.spectrum_tzx import (
+import pillow_zx_spectrum  # noqa: F401  (registers plugins)
+from pillow_zx_spectrum.blocks import TYPE_CODE
+from pillow_zx_spectrum.spectrum_tzx import (
     extract_screen,
     iter_tzx_blocks,
 )

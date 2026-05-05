@@ -1,4 +1,4 @@
-from pillow_retro_tape.plus3dos import (
+from pillow_zx_spectrum.plus3dos import (
     HEADER_LEN,
     PLUS3DOS_MAGIC,
     TYPE_CODE,

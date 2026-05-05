@@ -3,7 +3,7 @@
 		pre-commit update-pre-commit docs dist
 
 
-PROJECT_NAME := pillow_retro_tape
+PROJECT_NAME := pillow_zx_spectrum
 
 
 all: dev coverage  ## builds everything

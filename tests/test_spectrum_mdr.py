@@ -3,8 +3,8 @@ import struct
 import pytest
 from PIL import Image, UnidentifiedImageError
 
-import pillow_retro_tape  # noqa: F401
-from pillow_retro_tape.microdrive import (
+import pillow_zx_spectrum  # noqa: F401
+from pillow_zx_spectrum.microdrive import (
     DATA_BYTES,
     HEADER_LEN,
     MIN_SECTORS,
@@ -13,7 +13,7 @@ from pillow_retro_tape.microdrive import (
     TYPE_CODE,
     parse_mdr_files,
 )
-from pillow_retro_tape.spectrum_mdr import extract_screens
+from pillow_zx_spectrum.spectrum_mdr import extract_screens
 
 from ._helpers import make_screen
 

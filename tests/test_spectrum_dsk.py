@@ -1,9 +1,9 @@
 import pytest
 from PIL import Image, UnidentifiedImageError
 
-import pillow_retro_tape  # noqa: F401  (registers plugins)
-from pillow_retro_tape.plus3dos import TYPE_CODE, make_plus3_header
-from pillow_retro_tape.spectrum_dsk import extract_screen, parse_dsk
+import pillow_zx_spectrum  # noqa: F401  (registers plugins)
+from pillow_zx_spectrum.plus3dos import TYPE_CODE, make_plus3_header
+from pillow_zx_spectrum.spectrum_dsk import extract_screen, parse_dsk
 
 from ._helpers import make_extended_dsk, make_screen
 

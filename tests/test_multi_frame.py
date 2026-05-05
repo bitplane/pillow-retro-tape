@@ -3,14 +3,14 @@
 import pytest
 from PIL import Image, ImageSequence
 
-import pillow_retro_tape  # noqa: F401  (registers plugins + decoder)
-from pillow_retro_tape.blocks import TYPE_CODE
-from pillow_retro_tape.plus3dos import TYPE_CODE as P3_CODE
-from pillow_retro_tape.plus3dos import make_plus3_header
-from pillow_retro_tape.spectrum_dsk import extract_screens as dsk_screens
-from pillow_retro_tape.spectrum_screen import decode_screen_pixels
-from pillow_retro_tape.spectrum_tap import extract_screens as tap_screens
-from pillow_retro_tape.spectrum_tzx import extract_screens as tzx_screens
+import pillow_zx_spectrum  # noqa: F401  (registers plugins + decoder)
+from pillow_zx_spectrum.blocks import TYPE_CODE
+from pillow_zx_spectrum.plus3dos import TYPE_CODE as P3_CODE
+from pillow_zx_spectrum.plus3dos import make_plus3_header
+from pillow_zx_spectrum.spectrum_dsk import extract_screens as dsk_screens
+from pillow_zx_spectrum.spectrum_screen import decode_screen_pixels
+from pillow_zx_spectrum.spectrum_tap import extract_screens as tap_screens
+from pillow_zx_spectrum.spectrum_tzx import extract_screens as tzx_screens
 
 from ._helpers import (
     make_data_block,

@@ -4,8 +4,8 @@ import zlib
 import pytest
 from PIL import Image, UnidentifiedImageError
 
-import pillow_retro_tape  # noqa: F401
-from pillow_retro_tape.spectrum_szx import _decode_ramp, iter_chunks, parse_szx
+import pillow_zx_spectrum  # noqa: F401
+from pillow_zx_spectrum.spectrum_szx import _decode_ramp, iter_chunks, parse_szx
 
 from ._helpers import make_screen, make_szx
 

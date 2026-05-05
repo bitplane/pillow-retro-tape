@@ -1,4 +1,4 @@
-# `pillow_retro_tape`
+# `pillow_zx_spectrum`
 
 Pillow loaders for ZX Spectrum loading screens, extracted from tape, disk
 and snapshot files in the wild.
@@ -11,14 +11,14 @@ expose them as Pillow frames via `seek()` / `n_frames`.
 ## Install
 
 ```bash
-pip install pillow_retro_tape
+pip install pillow_zx_spectrum
 ```
 
 ## Usage
 
 ```python
 from PIL import Image
-import pillow_retro_tape  # registers the plugins on import
+import pillow_zx_spectrum  # registers the plugins on import
 
 img = Image.open("Glug Glug (1984)(CRL).tap")
 img.save("loading-screen.png")
