@@ -2,6 +2,7 @@
 
 from . import (
     pillow_screen,
+    spectrum_didaktik,
     spectrum_dsk,
     spectrum_mdr,
     spectrum_mgt,
@@ -32,6 +33,7 @@ spectrum_sna.register()  # exactly 49179 or 131103 bytes
 spectrum_trd.register()  # TR-DOS magic byte 0x10 at $8E7
 spectrum_mgt.register()  # MGT directory validity check
 spectrum_mdr.register()  # Microdrive sector-checksum validity check
+spectrum_didaktik.register()  # Didaktik MDOS "SDOS" marker at byte 204
 spectrum_slt.register()  # z80 + "\x00\x00\x00SLT" marker
 spectrum_z80.register()  # any v1/v2/v3 z80 (loosest)
 spectrum_tap.register()  # length+flag fingerprint (loosest tape)
