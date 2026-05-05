@@ -1,0 +1,36 @@
+[project]
+name = "pillow_retro_tape"
+description = "Load images from 8-bit computer tapes"
+version = "0.1.0"
+authors = [
+    { name = "Gareth Davidson", email = "gaz@bitplane.net" }
+]
+readme = "README.md"
+requires-python = ">=3.10"
+
+dependencies = [
+    "pillow>=10",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pre-commit",
+    "pytest",
+    "coverage",
+    "pytest-cov",
+    "build",
+    "twine",
+    "ruff",
+    "pydoc-markdown"
+]
+
+[build-system]
+build-backend = "flit_core.buildapi"
+requires = ["flit_core >=3.2,<4"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.format]
+docstring-code-format = true

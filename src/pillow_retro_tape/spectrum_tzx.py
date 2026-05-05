@@ -1,0 +1,119 @@
+"""Pillow plugin for ZX Spectrum TZX tape files.
+
+Walks the TZX block stream, extracts standard ROM-loader blocks (IDs 0x10
+and 0x11), feeds them to a `MemoryMap`, and decodes the resulting screen.
+
+Skips meta blocks (text, archive info, hardware type, glue, group/loop
+markers, pause). Raises NotImplementedError on audio-only blocks (pure
+tone, pulse sequence, pure data, direct recording, CSW, generalized) — those
+need an actual loader to interpret and aren't supported.
+"""
+
+import struct
+from typing import Iterator
+
+from PIL import Image
+
+from .blocks import Block, parse_block
+from .memory import MemoryMap
+from .pillow_screen import ScreenSequenceImageFile
+
+TZX_MAGIC = b"ZXTape!\x1a"
+
+
+def iter_tzx_blocks(data: bytes) -> Iterator[Block]:
+    """Yield each standard ROM-loader Block in a TZX file (skipping meta)."""
+    if not data.startswith(TZX_MAGIC):
+        raise ValueError("not a TZX file")
+    i = len(TZX_MAGIC) + 2  # magic + version major.minor
+
+    while i < len(data):
+        bid = data[i]
+        i += 1
+        if bid == 0x10:  # standard speed data
+            _, length = struct.unpack_from("<HH", data, i)
+            i += 4
+            yield parse_block(data[i : i + length])
+            i += length
+        elif bid == 0x11:  # turbo speed data — same shape, different timing
+            i += 0x0F  # skip 15 bytes of timing
+            length = data[i] | (data[i + 1] << 8) | (data[i + 2] << 16)
+            i += 3
+            yield parse_block(data[i : i + length])
+            i += length
+        elif bid == 0x20:  # pause / stop
+            i += 2
+        elif bid == 0x21:  # group start: 1-byte length + name
+            i += 1 + data[i]
+        elif bid == 0x22:  # group end
+            pass
+        elif bid == 0x24:  # loop start: 2-byte repetitions
+            i += 2
+        elif bid == 0x25:  # loop end
+            pass
+        elif bid == 0x2A:  # stop tape if 48K
+            i += 4
+        elif bid == 0x2B:  # set signal level: 4-byte length + 1 byte
+            length = struct.unpack_from("<I", data, i)[0]
+            i += 4 + length
+        elif bid == 0x30:  # text description: 1-byte length + text
+            i += 1 + data[i]
+        elif bid == 0x31:  # message: 1-byte time + 1-byte length + text
+            i += 2 + data[i + 1]
+        elif bid == 0x32:  # archive info: 2-byte length
+            length = struct.unpack_from("<H", data, i)[0]
+            i += 2 + length
+        elif bid == 0x33:  # hardware type: 1-byte count + count*3 bytes
+            i += 1 + data[i] * 3
+        elif bid == 0x35:  # custom info: 16-byte id + 4-byte length
+            i += 16
+            length = struct.unpack_from("<I", data, i)[0]
+            i += 4 + length
+        elif bid == 0x5A:  # glue
+            i += 9
+        else:
+            raise NotImplementedError(f"TZX block id 0x{bid:02x} at offset {i - 1} not supported")
+
+
+def extract_screens(tzx_data: bytes) -> list[bytes]:
+    """Walk a TZX into a MemoryMap and return every SCREEN$ candidate in tape order."""
+    mem = MemoryMap()
+    mem.apply(iter_tzx_blocks(tzx_data))
+    return list(mem.screens_found())
+
+
+def extract_screen(tzx_data: bytes) -> bytes:
+    """Return the first SCREEN$ candidate (preserved for single-frame use)."""
+    screens = extract_screens(tzx_data)
+    if not screens:
+        raise ValueError("no screen found in TZX")
+    return screens[0]
+
+
+# --- Pillow plugin --------------------------------------------------------
+
+
+class ZXTZXImageFile(ScreenSequenceImageFile):
+    format = "ZXTZX"
+    format_description = "ZX Spectrum TZX tape"
+
+    def _open(self):
+        magic = self.fp.read(len(TZX_MAGIC))
+        if magic != TZX_MAGIC:
+            raise SyntaxError(f"not a TZX file (magic={magic!r})")
+        self.fp.seek(0)
+        data = self.fp.read()
+        try:
+            screens = extract_screens(data)
+        except (ValueError, NotImplementedError) as e:
+            raise SyntaxError(f"failed to parse TZX: {e}") from e
+        self._set_frames(screens)
+
+
+def _accept(prefix: bytes) -> bool:
+    return prefix.startswith(TZX_MAGIC)
+
+
+def register() -> None:
+    Image.register_open(ZXTZXImageFile.format, ZXTZXImageFile, _accept)
+    Image.register_extension(ZXTZXImageFile.format, ".tzx")
