@@ -23,6 +23,29 @@ expose them as Pillow frames via `seek()` / `n_frames`.
 pip install pillow_zx_spectrum
 ```
 
+## Command line
+
+No install needed with [uv](https://docs.astral.sh/uv/) — load a Spectrum
+image file and open it in your system image viewer:
+
+```bash
+uvx pillow_zx_spectrum "Glug Glug (1984)(CRL).tap"
+```
+
+Installing the package instead puts the same tool in your `PATH` under
+its true name, `LOAD $`:
+
+```bash
+LOAD\ $ "Glug Glug (1984)(CRL).tap"
+```
+
+Pick a screen from a multi-load container with `--frame`, or convert to
+PNG (or any format Pillow can write) instead of viewing with `-o`:
+
+```bash
+LOAD\ $ "Moonwalker (Erbe).dsk" --frame 1 -o moonwalker.png
+```
+
 ## Usage
 
 ```python

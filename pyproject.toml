@@ -12,6 +12,10 @@ dependencies = [
     "pillow>=10",
 ]
 
+[project.scripts]
+"LOAD $" = "pillow_zx_spectrum.cli:main"
+pillow_zx_spectrum = "pillow_zx_spectrum.cli:main"
+
 [project.optional-dependencies]
 dev = [
     "pre-commit",
