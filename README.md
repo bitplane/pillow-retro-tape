@@ -33,7 +33,8 @@ uvx pillow_zx_spectrum "Glug Glug (1984)(CRL).tap"
 ```
 
 Installing the package instead puts the same tool in your `PATH` under
-its true name, `LOAD $`:
+its true name, `LOAD $` (needs pip ≥ 24 — older pips can't create a
+script with a space in its name):
 
 ```bash
 LOAD\ $ "Glug Glug (1984)(CRL).tap"
