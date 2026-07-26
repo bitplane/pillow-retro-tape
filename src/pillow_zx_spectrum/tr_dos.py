@@ -21,8 +21,8 @@ rather than at fixed disk positions.
 """
 
 import struct
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Iterator
 
 SECTOR_BYTES = 256
 SECTORS_PER_TRACK = 16

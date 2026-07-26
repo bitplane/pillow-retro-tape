@@ -9,7 +9,7 @@ with their declared load address. SCREEN$ entries always load at $4000
 length 6912.
 """
 
-from typing import Iterator
+from collections.abc import Iterator
 
 from PIL import Image
 

@@ -20,7 +20,6 @@ yield LoadEvents.
 
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Optional
 
 from .spectrum_screen import SCREEN_BYTES
 
@@ -42,7 +41,7 @@ KIND_SNAPSHOT = "snapshot"  # already-populated RAM bank from a snapshot file
 @dataclass
 class LoadEvent:
     body: bytes
-    addr: Optional[int] = None  # load address; None = no defined target
+    addr: int | None = None  # load address; None = no defined target
     name: str = ""  # filename (used for ranking hints)
     kind: str = KIND_RAW  # one of KIND_*
 

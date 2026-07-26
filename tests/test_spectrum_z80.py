@@ -13,7 +13,6 @@ from pillow_zx_spectrum.spectrum_z80 import (
 
 from ._helpers import make_screen, make_z80_v1, make_z80_v3
 
-
 # --- Decompression --------------------------------------------------------
 
 

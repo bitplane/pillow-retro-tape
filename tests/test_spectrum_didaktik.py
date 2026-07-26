@@ -17,7 +17,6 @@ from pillow_zx_spectrum.spectrum_didaktik import extract_screens
 
 from ._helpers import make_screen
 
-
 # --- Synthetic image builder ---------------------------------------------
 
 

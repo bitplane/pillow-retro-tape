@@ -6,7 +6,7 @@ each `B` (CODE) and `P` (BASIC) file into a LoadEvent. The `B` file's
 body just feeds the BASIC-only-no-screen path.
 """
 
-from typing import Iterator
+from collections.abc import Iterator
 
 from PIL import Image
 

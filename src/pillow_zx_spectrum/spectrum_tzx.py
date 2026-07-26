@@ -11,7 +11,7 @@ those need an actual loader to interpret and aren't supported.
 """
 
 import struct
-from typing import Iterator
+from collections.abc import Iterator
 
 from PIL import Image
 
@@ -64,10 +64,7 @@ def iter_tzx_blocks(data: bytes) -> Iterator[Block]:
             i += 5
             length = data[i] | (data[i + 1] << 8) | (data[i + 2] << 16)
             i += 3 + length
-        elif bid == 0x18:  # CSW recording: 4-byte length + data
-            length = struct.unpack_from("<I", data, i)[0]
-            i += 4 + length
-        elif bid == 0x19:  # generalized data: 4-byte length + data
+        elif bid == 0x18 or bid == 0x19:  # CSW recording: 4-byte length + data
             length = struct.unpack_from("<I", data, i)[0]
             i += 4 + length
         elif bid == 0x20:  # pause / stop
@@ -76,9 +73,7 @@ def iter_tzx_blocks(data: bytes) -> Iterator[Block]:
             i += 1 + data[i]
         elif bid == 0x22:  # group end
             pass
-        elif bid == 0x23:  # jump to relative
-            i += 2
-        elif bid == 0x24:  # loop start: 2-byte repetitions
+        elif bid == 0x23 or bid == 0x24:  # jump to relative
             i += 2
         elif bid == 0x25:  # loop end
             pass

@@ -9,7 +9,7 @@ or container header — geometry is inferred from the file size:
 The file system layout is documented in tr_dos.py.
 """
 
-from typing import Iterator
+from collections.abc import Iterator
 
 from PIL import Image
 

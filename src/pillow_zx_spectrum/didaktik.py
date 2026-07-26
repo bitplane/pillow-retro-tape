@@ -57,8 +57,8 @@ with broken chains (cycles, out-of-range links, hits on reserved/bad).
 """
 
 from collections import OrderedDict
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Iterator
 
 SECTOR_BYTES = 512
 BOOT_SECTOR = 0

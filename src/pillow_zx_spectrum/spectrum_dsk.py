@@ -32,10 +32,9 @@ length 6912 is the loading screen.
 """
 
 import struct
+from collections.abc import Iterator
 
 from PIL import Image
-
-from typing import Iterator
 
 from .cpm import detect_reserved_offset, directory_looks_valid, list_files
 from .disk import DiskImage, Sector
@@ -220,7 +219,7 @@ class ZXDSKImageFile(ScreenSequenceImageFile):
     def _open(self):
         head = self.fp.read(len(DSK_MAGIC_EXT))
         self.fp.seek(0)
-        if not (head.startswith(DSK_MAGIC_STD) or head.startswith(DSK_MAGIC_EXT)):
+        if not head.startswith((DSK_MAGIC_STD, DSK_MAGIC_EXT)):
             raise SyntaxError("not a CPC DSK file")
         data = self.fp.read()
         try:
@@ -231,7 +230,7 @@ class ZXDSKImageFile(ScreenSequenceImageFile):
 
 
 def _accept(prefix: bytes) -> bool:
-    return prefix.startswith(DSK_MAGIC_STD) or prefix.startswith(DSK_MAGIC_EXT[:8])
+    return prefix.startswith((DSK_MAGIC_STD, DSK_MAGIC_EXT[:8]))
 
 
 def register() -> None:

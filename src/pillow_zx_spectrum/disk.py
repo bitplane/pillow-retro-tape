@@ -7,8 +7,8 @@ container and produces a `DiskImage`. Downstream code uses
 reach into a file system.
 """
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Iterable
 
 
 @dataclass(frozen=True)

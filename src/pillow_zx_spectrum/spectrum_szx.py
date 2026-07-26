@@ -19,7 +19,7 @@ Reference: https://www.spectaculator.com/docs/zx-state/
 
 import struct
 import zlib
-from typing import Iterator
+from collections.abc import Iterator
 
 from PIL import Image
 

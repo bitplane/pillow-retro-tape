@@ -73,7 +73,7 @@ def test_parse_dsk_rejects_bad_magic():
 
 
 def test_pillow_open_synthetic_dsk(tmp_path):
-    dsk, expected = _make_screen_dsk_track(skewed=True)
+    dsk, _ = _make_screen_dsk_track(skewed=True)
     p = tmp_path / "synth.dsk"
     p.write_bytes(dsk)
     img = Image.open(p)

@@ -35,8 +35,8 @@ File types we care about:
     9   ZX 128K snapshot
 """
 
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Iterator
 
 SECTOR_BYTES = 512
 DATA_PER_SECTOR = 510  # last 2 bytes are the chain pointer
@@ -157,7 +157,5 @@ def directory_looks_valid(data: bytes) -> bool:
         if type_byte > 25:
             return False  # outside known MGT type range
         name = bytes(b & 0x7F for b in e[1:11])
-        if not all(0x20 <= b < 0x7F or b == 0 for b in name):
-            return False
-        return True
+        return all(0x20 <= b < 0x7F or b == 0 for b in name)
     return False

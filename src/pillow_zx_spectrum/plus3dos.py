@@ -21,8 +21,8 @@ appears on a 512-byte boundary in a logical-sector byte stream.
 """
 
 import struct
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Iterator
 
 PLUS3DOS_MAGIC = b"PLUS3DOS\x1a"
 HEADER_LEN = 128

@@ -35,8 +35,8 @@ References:
 """
 
 from collections import defaultdict
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Iterator
 
 SECTOR_BYTES = 543
 HEADER_LEN = 15  # sector header (bytes 0..14)

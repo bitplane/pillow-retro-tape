@@ -10,7 +10,7 @@ Reconstructed Microdrive files become LoadEvents:
 - types 1/2 (number / character arrays) → KIND_RAW
 """
 
-from typing import Iterator
+from collections.abc import Iterator
 
 from PIL import Image
 

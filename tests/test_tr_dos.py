@@ -7,7 +7,7 @@ from pillow_zx_spectrum.tr_dos import (
     parse_trd_files,
 )
 
-from ._helpers import make_screen, make_scl, make_trd
+from ._helpers import make_scl, make_screen, make_trd
 
 
 def test_parse_scl_yields_files_in_order():

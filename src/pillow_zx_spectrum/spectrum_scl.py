@@ -5,7 +5,7 @@ directory entries and concatenated file data, no empty sectors or disk
 geometry. Magic bytes "SINCLAIR".
 """
 
-from typing import Iterator
+from collections.abc import Iterator
 
 from PIL import Image
 

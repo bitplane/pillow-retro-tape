@@ -10,7 +10,7 @@ extractor (see loader.py).
 """
 
 import struct
-from typing import Iterator
+from collections.abc import Iterator
 
 from PIL import Image
 
