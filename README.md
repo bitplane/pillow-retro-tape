@@ -1,5 +1,10 @@
 # `pillow_zx_spectrum`
 
+[![Tests](https://github.com/bitplane/pillow-zx-spectrum/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/bitplane/pillow-zx-spectrum/actions/workflows/unit-tests.yml)
+[![PyPI Version](https://img.shields.io/pypi/v/pillow_zx_spectrum.svg)](https://pypi.org/project/pillow-zx-spectrum/)
+[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](https://pypi.org/project/pillow-zx-spectrum/)
+[![License](https://img.shields.io/badge/license-WTFPL-brightgreen)](LICENSE.md)
+
 <table>
 <tr>
 <td><img src="https://bitplane.net/dev/python/pillow-zx-spectrum/jetpac.png" alt="Jetpac"></td>
