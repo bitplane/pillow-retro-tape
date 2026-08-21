@@ -1,8 +1,7 @@
-"""The ``LOAD $`` command line tool.
+"""The ``zx-screen`` command line tool.
 
 Loads a ZX Spectrum screen from a tape, disk or snapshot file and opens
-it in the system image viewer (or saves it with ``--output``). The
-closest a POSIX shell gets to ``LOAD "" SCREEN$``.
+it in the system image viewer (or saves it with ``--output``).
 """
 
 import argparse
@@ -10,7 +9,7 @@ import sys
 
 from PIL import Image, UnidentifiedImageError
 
-PROG = "LOAD $"
+PROG = "zx-screen"
 
 
 def main(argv: list[str] | None = None) -> int:

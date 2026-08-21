@@ -25,26 +25,11 @@ pip install pillow_zx_spectrum
 
 ## Command line
 
-No install needed with [uv](https://docs.astral.sh/uv/) — load a Spectrum
-image file and open it in your system image viewer:
+Open a Spectrum image up in your image viewer, or write a found frame to disk:
 
 ```bash
-uvx pillow_zx_spectrum "Glug Glug (1984)(CRL).tap"
-```
-
-Installing the package instead puts the same tool in your `PATH` under
-its true name, `LOAD $` (needs pip ≥ 24 — older pips can't create a
-script with a space in its name):
-
-```bash
-LOAD\ $ "Glug Glug (1984)(CRL).tap"
-```
-
-Pick a screen from a multi-load container with `--frame`, or convert to
-PNG (or any format Pillow can write) instead of viewing with `-o`:
-
-```bash
-LOAD\ $ "Moonwalker (Erbe).dsk" --frame 1 -o moonwalker.png
+zx-screen "Glug Glug (1984)(CRL).tap"
+zx-screen "Moonwalker (Erbe).dsk" --frame 1 -o moonwalker.png
 ```
 
 ## Usage
@@ -71,7 +56,15 @@ for i, frame in enumerate(ImageSequence.Iterator(img)):
     frame.save(f"moonwalker.{i}.png")
 ```
 
+## How it works
+
+A file becomes a stream of `(addr, body, name, kind)` events, and if one is the
+same size as a `SCREEN$`, or it overlaps the `$4000-$5AFF` graphics region, then
+you'll get an image for each one (assuming it looks sensible).
+
 ## Supported formats
+
+Most of them tbh:
 
 ### Tape
 
@@ -106,40 +99,14 @@ for i, frame in enumerate(ImageSequence.Iterator(img)):
 | `.szx` | SZX / ZX-State  | Spectaculator's modern chunked snapshot, with zlib-compressed RAM pages |
 | `.slt` | SLT             | "Super Level Loader" — a Z80 snapshot with a table of additional screens (each becomes a frame) |
 
-For 128K snapshots the shadow screen (bank 7) is exposed as an extra
-frame when it's distinct from the main screen.
+For 128K snapshots the shadow screen (bank 7) might be exposed as an extra
+frame.
 
-## How it works
+### Unsupported
 
-Every container is reduced to a sequence of **load events** —
-`(addr, body, name, kind)` tuples — and walked into a 64K Spectrum RAM
-image. After each write the pipeline harvests two kinds of candidate:
-
-1. **Direct** — if the event's body is exactly 6912 bytes (the SCREEN$
-   shape), it might *be* a screen, regardless of its load address.
-2. **RAM snapshot** — slice `$4000-$5AFF` after the write and emit it if
-   the screen area now contains a new picture (catches screens loaded as
-   part of larger CODE blocks, screens overwritten by later loads, etc.)
-
-Candidates are then ranked by filename hint (`SCR` / `PIC` / `TITL` /
-`LOAD` / `INTRO`...) → canonical `$4000` address → other; bodies that
-clearly aren't screens (random attribute distribution, all-FLASH cells)
-are dropped. The same pipeline runs for every format.
-
-## What we don't load
-
-- **Sampled-audio tapes** (`.csw`, `.wav`, `.mp3`) — these encode the
-  loader's pulse train, decoding requires a Z80 emulator running the
-  Spectrum ROM
-- **Copy-protected disks** (`.ipf`) — needs the CAPS/SPS library
-- **Custom-loader tapes** (SpeedLock 7, Alkatraz, BleepLoad, ...) —
-  non-standard timing; the screen lives inside TZX 0x14 pure-data blocks
-  that we skip rather than implement per-protection decoders for
-- **16K Spectrum games** — no SCREEN$ saved before the program
-- **BASIC-only programs** that draw their screen at runtime
-
-These cases produce `UnidentifiedImageError` ("recognised the format,
-nothing to extract") rather than a misleading blank frame.
+You'll get `UnidentifiedImageError`s for sampled audio tapes, custom loaders, 
+copy protected games and other weird things. It doesn't run any Z80 machine code
+so programmatically made screens aren't decoded.
 
 ## License
 

@@ -1,4 +1,4 @@
-"""Tests for the `LOAD $` command line tool."""
+"""Tests for the ``zx-screen`` command line tool."""
 
 import importlib.metadata
 
@@ -70,18 +70,13 @@ def test_unrecognised_file_fails(tmp_path, capsys):
 
 
 def test_console_scripts_registered():
-    # `uvx pillow_zx_spectrum` needs a script named after the package;
-    # `LOAD $` is the fun one you get in your PATH.
     eps = importlib.metadata.entry_points(group="console_scripts")
     ours = {ep.name: ep.value for ep in eps if ep.value.startswith("pillow_zx_spectrum.")}
-    assert ours == {
-        "LOAD $": "pillow_zx_spectrum.cli:main",
-        "pillow_zx_spectrum": "pillow_zx_spectrum.cli:main",
-    }
+    assert ours == {"zx-screen": "pillow_zx_spectrum.cli:main"}
 
 
-def test_help_uses_spectrum_prog_name(capsys):
+def test_help_uses_command_name(capsys):
     with pytest.raises(SystemExit) as exc:
         main(["--help"])
     assert exc.value.code == 0
-    assert "LOAD $" in capsys.readouterr().out
+    assert "zx-screen" in capsys.readouterr().out

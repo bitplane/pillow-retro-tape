@@ -13,8 +13,7 @@ dependencies = [
 ]
 
 [project.scripts]
-"LOAD $" = "pillow_zx_spectrum.cli:main"
-pillow_zx_spectrum = "pillow_zx_spectrum.cli:main"
+zx-screen = "pillow_zx_spectrum.cli:main"
 
 [project.optional-dependencies]
 dev = [
