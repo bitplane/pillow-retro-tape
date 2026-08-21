@@ -12,6 +12,9 @@ dependencies = [
     "pillow>=10",
 ]
 
+[project.scripts]
+zx-screen = "pillow_zx_spectrum.cli:main"
+
 [project.optional-dependencies]
 dev = [
     "pre-commit",
